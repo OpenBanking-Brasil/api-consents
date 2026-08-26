@@ -143,7 +143,7 @@ info:
     - No caso de criação ou renovação de consentimentos com prazo indeterminado, a receptora não deve enviar o atributo expirationDateTime. Para prazos determinados o campo deve ser enviado.
     - A renovação de consentimento (`POST /consents/{consentId}/extends`) deve ser possível por apenas um cliente logado. 
     Isso implica que qualquer usuário (`loggedUser`) com permissão para o consentimento Pessoa Jurídica deve ser capaz de finalizar o fluxo de renovação sem redirecionamento. Para consentimentos Pessoa Natural apenas o `loggedUser` criador do consentimento consegue renovar sem redirecionamento.
-  version: 3.3.1
+  version: 3.4.0-rc.1
   license:
     name: Apache 2.0
     url: 'http://www.apache.org/licenses/LICENSE-2.0'
@@ -1001,6 +1001,7 @@ components:
                         - CONSENT_MAX_DATE_REACHED – consentimento que ultrapassou o tempo limite de compartilhamento.   
                         - CONSENT_TECHNICAL_ISSUE – consentimento que foi rejeitado devido a um problema técnico que impossibilita seu uso pela instituição receptora, por exemplo: falha associada a troca do AuthCode pelo AccessToken, durante o processo de Hybrid Flow.   
                         - INTERNAL_SECURITY_REASON – consentimento que foi rejeitado devido as políticas de segurança aplicada pela instituição transmissora.
+                        - CONSENT_MISSING_INFORMATION - rejeição por falta do nome do usuário PJ no CIBA.​
                       enum:
                         - CONSENT_EXPIRED
                         - CUSTOMER_MANUALLY_REJECTED
@@ -1008,6 +1009,7 @@ components:
                         - CONSENT_MAX_DATE_REACHED
                         - CONSENT_TECHNICAL_ISSUE
                         - INTERNAL_SECURITY_REASON
+                        - CONSENT_MISSING_INFORMATION
                       example: CONSENT_EXPIRED
                     additionalInformation:
                       type: string
@@ -1290,6 +1292,15 @@ components:
       required:
         - document
       properties:
+        name:
+          type: string
+          maxLength: 50
+          example: 'Joaquim Silva'
+          pattern: '^[\w\W\s]*'
+          description: |
+            Nome do usuário que solicitou o compartilhamento de dados na instituição receptora.
+            
+            [RESTRIÇÃO] Obrigatório via `protocolo CIBA` ou quando houver a intenção de fluxo `fallback CIBA` para clientes `PJ` identificado via campo `businessEntity`
         document:
           $ref: '#/components/schemas/LoggedUserDocument'
     LoggedUserExtensions:
@@ -1299,7 +1310,7 @@ components:
         Deve ser armazenado como novo usuário logado responsável pela renovação do consentimento atual.
       required:
         - document
-      properties:
+      properties:  
         document:
           $ref: '#/components/schemas/LoggedUserDocumentExtensions'
     LoggedUserDocument:
