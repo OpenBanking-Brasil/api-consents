@@ -13,7 +13,7 @@ info:
       - Pedido de renovação de consentimento do cliente pela receptora: `POST /consents/{consentId}/extends`
       - Devolução de lista com histórico de renovações efetuadas: `GET /consents/{consentId}/extensions`
       - Pedido de revogação do consentimento: `DELETE /consents/{consentId}`
-    - Recomenda-se fortemente a leitura da seção [Orientações - [DC] Consentimento](https://openfinancebrasil.atlassian.net/wiki/spaces/OF/pages/219480491) para maiores detalhes, regras e restrições referente aos endpoints da API Consents
+    - Recomenda-se fortemente a leitura das seções: [Documento de Requisitos do Produto](https://openfinancebrasil.atlassian.net/wiki/spaces/OF/pages/2122743837) e [Orientações - [DC] Consentimento](https://openfinancebrasil.atlassian.net/wiki/spaces/OF/pages/219480491) para maiores detalhes, regras e restrições referente aos endpoints da API Consents
     - As informações da instituição receptora não trafegam na API Consents – a autenticação da receptora se dá através do [DCR](https://openfinancebrasil.atlassian.net/wiki/spaces/OF/pages/17378307/Dynamic+Client+Registration).
     - Na chamada para a criação, consulta e revogação do consentimento deve-se utilizar um token gerado via `client_credentials`. Na chamada para renovação do consentimento deve-se utilizar um token gerado via `authorization_code`.
     - Após o `POST` de criação do consentimento, o `STATUS` devolvido na resposta deverá ser `AWAITING_AUTHORISATION`.
@@ -137,13 +137,13 @@ info:
     - A instituição transmissora deve validar o preenchimento correto dos agrupamentos acima no momento da geração do consentimento.
     - Caso a instiuição receptora envie permissões não existentes nos agrupamentos especificados na tabela, a transmissora deve rejeitar o pedido da receptora dando retorno HTTP Status Code 400.
     - A transmissora deve retornar, da lista de permissions requisitadas, apenas o subconjunto de permissions por ela suportada, removendo da lista as permissions de produtos não suportados e retornando HTTP Status Code 201. A única exceção a este comportamento são os casos de produtos agrupados, como Operações de Crédito, Investimentos e Câmbio, para os quais todas as permissões do agrupamento devem ser mantidas. Caso não restem permissões funcionais, a instituição transmissora deve retornar o erro HTTP Code "422 Unprocessable Entity".
-    - A renovação de consentimento não pode ser efetuada em situações determinadas. É esperado status 401 ou 403 para situações em que o erro for tratado na camada de segurança. Para erros tratados em camada de negócio, a transmissora deve retornar 422 conforme mensagens especificadas na página [Orientações – [DC] Consentimento](https://openfinancebrasil.atlassian.net/wiki/spaces/DraftOF/pages/232915037)
+    - A renovação de consentimento não pode ser efetuada em situações determinadas. É esperado status 401 ou 403 para situações em que o erro for tratado na camada de segurança. Para erros tratados em camada de negócio, a transmissora deve retornar 422 conforme mensagens especificadas na página [Documento de Requisitos do Produto](https://openfinancebrasil.atlassian.net/wiki/spaces/OF/pages/2122743837)
     - Caso o método `DELETE` seja chamado para um consentimento que já se encontra no `STATUS REJECTED` deve se retornar o STATUS CODE 422.
-    - Pedidos de renovação de consentimento somente podem alterar a data de validade (conforme as regras definidas em [Orientações – [DC] Consentimento](https://openfinancebrasil.atlassian.net/wiki/spaces/DraftOF/pages/232915037)) e a finalidade do consentimento, e aplica-se somente a consentimentos ativos (status `AUTHORISED`).
+    - Pedidos de renovação de consentimento somente podem alterar a data de validade (conforme as regras definidas em [Documento de Requisitos do Produto](https://openfinancebrasil.atlassian.net/wiki/spaces/OF/pages/2122743837)) e a finalidade do consentimento, e aplica-se somente a consentimentos ativos (status `AUTHORISED`).
     - No caso de criação ou renovação de consentimentos com prazo indeterminado, a receptora não deve enviar o atributo expirationDateTime. Para prazos determinados o campo deve ser enviado.
     - A renovação de consentimento (`POST /consents/{consentId}/extends`) deve ser possível por apenas um cliente logado. 
     Isso implica que qualquer usuário (`loggedUser`) com permissão para o consentimento Pessoa Jurídica deve ser capaz de finalizar o fluxo de renovação sem redirecionamento. Para consentimentos Pessoa Natural apenas o `loggedUser` criador do consentimento consegue renovar sem redirecionamento.
-  version: 3.4.0-rc.1
+  version: 3.4.0
   license:
     name: Apache 2.0
     url: 'http://www.apache.org/licenses/LICENSE-2.0'
@@ -1167,7 +1167,13 @@ components:
                   - CONSENTIMENTO_EM_STATUS_REJEITADO
                 example: CONSENTIMENTO_EM_STATUS_REJEITADO
                 description: |
-                  - CONSENTIMENTO_EM_STATUS_REJEITADO
+                  Código de erro específico de negócio retornado no status HTTP 422 durante a tentativa de exclusão ou revogação do consentimento (DELETE /consents/{consentId}) no Open Finance Brasil. 
+                  
+                  Valores possíveis e seus contextos de ocorrência: 
+                    
+                    • `CONSENTIMENTO_EM_STATUS_REJEITADO`: Ocorre quando a Instituição Receptora dispara uma requisição de exclusão/revogação para um consentimento que já se encontra no estado final `REJECTED`. 
+                    
+                  Como o estado `REJECTED` é um estado terminal e imutável na máquina de estados do Open Finance Brasil, nenhuma transição ou alteração adicional é permitida, resultando na rejeição da requisição com erro funcional HTTP 422.  
               title:
                 description: Título legível por humanos deste erro específico
                 type: string
@@ -1208,15 +1214,22 @@ components:
                   - ERRO_NAO_MAPEADO
                 example: SEM_PERMISSOES_FUNCIONAIS_RESTANTES
                 description: |
-                  - SEM_PERMISSOES_FUNCIONAIS_RESTANTES
-                  - INFORMACOES_PJ_NAO_INFORMADAS
-                  - PERMISSOES_PJ_INCORRETAS
-                  - PERMISSAO_PF_PJ_EM_CONJUNTO
-                  - COMBINACAO_PERMISSOES_INCORRETA
-                  - DATA_EXPIRACAO_INVALIDA
-                  - ERRO_NAO_MAPEADO
-
-                  A opção “ERRO_NAO_MAPEADO” só deve ser utilizada caso não haja um code especifico mapeado para o erro.
+                  Código que identifica de forma específica o motivo pelo qual a requisição não pôde ser processada. A instituição deve utilizar o código correspondente à causa efetivamente identificada, conforme as opções abaixo:  
+                  
+                  
+                  • `SEM_PERMISSOES_FUNCIONAIS_RESTANTES`: indica que a receptora enviou uma solicitação de consentimento contendo apenas permissões relativas a produtos de seleção individual (como Contas de Depósito/Cartão de Crédito) que a Transmissora não oferece no seu portfólio, incluindo casos onde são solicitadas permissões PF onde só suportam contas PJ e vice versa;
+                  
+                  • `INFORMACOES_PJ_NAO_INFORMADAS`: indica foi solicitado permissões exclusivas do segmento Pessoa Jurídica (agrupamentos de permissões `CUSTOMERS_BUSINESS` / Dados Cadastrais PJ), mas a Receptora não enviou o bloco de dados ou identificação do titular PJ (`businessEntity`) na requisição 
+                  
+                  • `PERMISSOES_PJ_INCORRETAS` Ocorre quando a Receptora inclui o bloco de identificação de Pessoa Jurídica (`businessEntity`), porém solicita permissões exclusivas de cadastro de Pessoa Física (agrupamentos `CUSTOMERS_PERSONAL`) 
+                  
+                  • `PERMISSAO_PF_PJ_EM_CONJUNTO`: Ocorre quando a Receptora envia no mesmo payload de consentimento permissões de dados cadastrais de Pessoa Física (`CUSTOMERS_PERSONAL`) e de Pessoa Jurídica (`CUSTOMERS_BUSINESS`) misturadas 
+                  
+                  • `COMBINACAO_PERMISSOES_INCORRETA`: Ocorre quando a Receptora envia uma combinação ou agrupamento de permissões (*permissions*) desalinhado com a matriz oficial de agrupamentos mínimos de produtos exigida pelas especificações do Open Finance Brasil 
+                  
+                  • `DATA_EXPIRACAO_INVALIDA`: Ocorre quando a data limite de expiração (`expirationDateTime`) informada no pedido de criação ou renovação do consentimento é inválida, estando situada no passado, sendo menor ou igual à expiração atual, ou ultrapassando o limite máximo permitido pelas regras vigentes (ex.: superior a 1 ano quando não for prazo indeterminado) 
+                  
+                  • `ERRO_NAO_MAPEADO`: deve ser utilizado exclusivamente quando a causa do erro não possuir um código específico previamente mapeado entre as opções disponíveis. A instituição não deve utilizar este código quando houver uma opção específica aplicável ao erro identificado.  
               title:
                 description: Título legível por humanos deste erro específico.
                 type: string
@@ -1254,11 +1267,15 @@ components:
                   - ERRO_NAO_MAPEADO
                 example: DEPENDE_MULTIPLA_ALCADA
                 description: |
-                 Códigos de erros previstos na durante o processo de extensão do consentimento:
-                  - DEPENDE_MULTIPLA_ALCADA: Necessário aprovação de múltipla alçada.
-                  - ESTADO_CONSENTIMENTO_INVALIDO: Estado inválido do consentimento.
-                  - DATA_EXPIRACAO_INVALIDA: Nova data para expiração do consentimento é inválida.
-                  - ERRO_NAO_MAPEADO: Utilizado quando não houver um code de erro definido.
+                 Código de erro específico de negócio retornado no status HTTP 422 durante o processo de renovação simplificada / extensão do consentimento (POST /consents/{consentId}/extends) no Open Finance Brasil. Valores possíveis e seus contextos de ocorrência: 
+                  
+                  • `DEPENDE_MULTIPLA_ALCADA`: Ocorre quando é solicitada a extensão do consentimento de um cliente Pessoa Jurídica (PJ) que exige alçadas de aprovação ou assinaturas de múltiplos representantes legais/sócios na instituição transmissora. Como a renovação simplificada é executada exclusivamente via backend (sem redirecionamento do usuário ao canal da transmissora), a extensão direta não é permitida para este perfil, devendo a criação de um novo consentimento com redirecionamento ou via protocolo desacoplado (CIBA). 
+                  
+                  • `ESTADO_CONSENTIMENTO_INVALIDO`: Ocorre na tentativa de estender a validade de um consentimento que não se encontra ativo no status `AUTHORISED` (por exemplo, quando o consentimento já está em um estado final como `REJECTED`, expirado ou revogado pelo cliente). 
+                  
+                  • `DATA_EXPIRACAO_INVALIDA`: Ocorre quando o parâmetro de nova data de expiração (`expirationDateTime`) fornecido na requisição é semanticamente inválido — por estar situado no passado em relação à data atual da requisição (`currentDateTime`), por ser menor ou igual à data de expiração atual do consentimento, ou por não seguir as especificações formais do perfil FAPI . 
+                  
+                  • `ERRO_NAO_MAPEADO`: Código reservado e utilizado exclusivamente como fallback para indicar cenários de falhas de validação semântica ou funcional no HTTP 422 durante o processo de extensão que ainda não possuam um código específico formalmente enum-mapeado nesta versão da especificação (não devendo ser utilizado para mascarar erros de segurança HTTP 401/403 ou erros de transporte).  
               title:
                 type: string
                 maxLength: 255
